@@ -1073,8 +1073,8 @@
     // Contador de visitas global (API Abacus): cada persona nueva recibe el
     // número siguiente, y recargar conserva tu número (no te cuenta dos veces)
     (function visitorCounter() {
-      const COUNTER_URL = 'https://abacus.jasoncameron.dev/hit/atreusarg.github.io/vs-pendejos-v4';
-      const MY_NUMBER_KEY = 'vsPendejosMyNumberV4';
+      const COUNTER_URL = 'https://abacus.jasoncameron.dev/hit/atreusarg.github.io/vs-pendejos-v5';
+      const MY_NUMBER_KEY = 'vsPendejosMyNumberV5';
       const put = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
       const TIER_OF = n => (n === 1 ? 'oro' : n === 2 ? 'plata' : n === 3 ? 'bronce' : '');
       const render = n => {
@@ -1098,6 +1098,9 @@
         } catch (e) {}
         render(n);
       };
+      let inIframe = false;
+      try { inIframe = (typeof window === 'object' && window.self !== window.top); } catch (e) { inIframe = true; }
+      if (inIframe) { fallbackLocal(); return; } // página embebida en otra (ej: vista previa del chat): no contar
       let mine = null;
       let storageOk = true;
       try { mine = parseInt(localStorage.getItem(MY_NUMBER_KEY) || '', 10); } catch (e) { storageOk = false; }

@@ -931,20 +931,40 @@
     });
     requestAnimationFrame(rhythmLoop);
 
-    // Contador de visitas: cuenta por navegador (el archivo no tiene backend)
+    // Contador de visitas global (API Abacus): cada persona nueva recibe el
+    // número siguiente, y recargar conserva tu número (no te cuenta dos veces)
     (function visitorCounter() {
-      let visits = 0;
-      try {
-        visits = parseInt(localStorage.getItem('vsPendejosVisits') || '0', 10) || 0;
-        visits += 1;
-        localStorage.setItem('vsPendejosVisits', String(visits));
-      } catch (e) {
-        visits = 1337; // sin localStorage (ej: vista previa embebida) → número sorpresa
-      }
+      const COUNTER_URL = 'https://abacus.jasoncameron.dev/hit/atreusarg.github.io/vs-pendejos';
+      const MY_NUMBER_KEY = 'vsPendejosMyNumber';
       const put = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-      put('aeroCount', 'Eres el visitante n.º ' + visits);
-      put('weirdCount', 'me alegra verte :) eres la visita n.º ' + visits);
-      put('animeCount', String(visits).padStart(6, '0'));
+      const render = n => {
+        put('aeroCount', 'Eres el visitante n.º ' + n);
+        put('weirdCount', 'me alegra verte :) eres la visita n.º ' + n);
+        put('animeCount', String(n).padStart(6, '0'));
+      };
+      const fallbackLocal = () => {
+        let n = 1337; // sin red ni localStorage (ej: vista previa embebida) → número sorpresa
+        try {
+          const stored = parseInt(localStorage.getItem('vsPendejosVisits') || '0', 10);
+          if (stored > 0) n = stored;
+        } catch (e) {}
+        render(n);
+      };
+      let mine = null;
+      try { mine = parseInt(localStorage.getItem(MY_NUMBER_KEY) || '', 10); } catch (e) {}
+      if (mine > 0) { render(mine); return; } // ya tenés número: recargar no cuenta de nuevo
+      if (typeof fetch !== 'function') { fallbackLocal(); return; }
+      const timer = typeof AbortController === 'function' ? new AbortController() : null;
+      if (timer) setTimeout(() => timer.abort(), 7000);
+      fetch(COUNTER_URL, timer ? { signal: timer.signal } : undefined)
+        .then(res => res.json())
+        .then(data => {
+          const n = data && data.value;
+          if (typeof n !== 'number' || !isFinite(n) || n < 1) throw new Error('respuesta invalida');
+          render(n);
+          try { localStorage.setItem(MY_NUMBER_KEY, String(n)); } catch (e) {}
+        })
+        .catch(fallbackLocal);
     })();
 
     const button = document.getElementById('themeButton');

@@ -5365,13 +5365,43 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         }, 50);
       }
 
-      function arrancarMusica() {
-        fadeOutIniciado = false;
-        if (!sonidosActivados()) return;
+      function crearAudio() {
         if (!musica) {
           musica = new Audio(MECHA_SRC);
           musica.preload = 'auto';
         }
+        return musica;
+      }
+
+      function desbloquearAudio() {
+        const audio = crearAudio();
+        if (audio.__desbloqueado) return;
+        audio.volume = 0;
+        try {
+          const p = audio.play();
+          if (p && p.then) {
+            p.then(() => {
+              audio.__desbloqueado = true;
+              if (!caminando || fadeOutIniciado) {
+                audio.pause();
+                try { audio.currentTime = 0; } catch (e) {}
+              } else {
+                fundir(0.9, 2500); // se desbloqueó a mitad de la caminata: entra con fade igual
+              }
+            }).catch(() => {});
+          } else {
+            audio.__desbloqueado = true;
+            if (!caminando) { audio.pause(); try { audio.currentTime = 0; } catch (e) {} }
+          }
+        } catch (e) {}
+      }
+      window.addEventListener('pointerdown', desbloquearAudio, { once: true, passive: true });
+      window.addEventListener('keydown', desbloquearAudio, { once: true, passive: true });
+
+      function arrancarMusica() {
+        fadeOutIniciado = false;
+        if (!sonidosActivados()) return;
+        crearAudio();
         try { musica.currentTime = 0; } catch (e) {}
         musica.volume = 0;
         try {
@@ -5420,14 +5450,14 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         const pollo = crearPollo();
         pollo.style.bottom = alturaBase() + 'px';
         let x = -140; // arranca fuera de pantalla, por la izquierda
-        pollo.style.transform = 'translateX(' + x + 'px) scaleX(-1)';
+        pollo.style.transform = 'translateX(' + x + 'px)';
         pollo.classList.add('caminando');
         arrancarMusica();
         let prev = null;
         function paso(ts) {
           if (prev !== null) x += VELOCIDAD * Math.min(0.1, (ts - prev) / 1000);
           prev = ts;
-          pollo.style.transform = 'translateX(' + x + 'px) scaleX(-1)';
+          pollo.style.transform = 'translateX(' + x + 'px)';
           if (!fadeOutIniciado && musica && !musica.paused && musica.duration && musica.duration - musica.currentTime <= 3.4) apagarMusica();
           if (!fadeOutIniciado && x > window.innerWidth - 290) apagarMusica();
           if (x < window.innerWidth + 20) requestAnimationFrame(paso);

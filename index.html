@@ -1373,6 +1373,20 @@ body:not(.weirdcore):not(.animecore) .aeroDesktopIcons {
   background: rgba(60,120,190,.35);
   z-index: 40;
 }
+a.desktopShortcut { text-decoration: none; }
+img.desktopShortcutIcon.gamebananaIcon {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.55));
+}
+.winFolderLogo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
 .desktopShortcut:hover,
 .desktopShortcut:focus-visible {
   border-color: rgba(190,225,255,.75);
@@ -3455,8 +3469,6 @@ body:not(.weirdcore):not(.animecore) #themeButton {
       <li><button role="menuitem" type="button" data-open-window="mediaPlayerWindow"><span class="startMenuIcon">▶️</span> Windows Media Player</button></li>
       <li><button role="menuitem" type="button" data-open-window="msnWindow"><span class="startMenuIcon">💬</span> MSN Messenger</button></li>
       <li class="startMenuSeparator" aria-hidden="true"></li>
-      <li><a role="menuitem" href="https://gamebanana.com/" target="_blank" rel="noopener noreferrer"><span class="startMenuIcon">🍌</span> GameBanana</a></li>
-      <li><a role="menuitem" href="https://gamejolt.com/" target="_blank" rel="noopener noreferrer"><span class="startMenuIcon">⚡</span> Game Jolt</a></li>
       <li><button role="menuitem" type="button" id="startMenuTheme"><span class="startMenuIcon">🎨</span> Cambiar tema</button></li>
     </ul>
   </div>
@@ -3473,12 +3485,6 @@ body:not(.weirdcore):not(.animecore) #themeButton {
     </div>
     <div class="winAddressBar">Equipo ▸ Descargas</div>
     <div class="winBody">
-      <a class="winFolderItem" href="https://gamebanana.com/" target="_blank" rel="noopener noreferrer">
-        <span class="winFolderIcon" aria-hidden="true"></span>GameBanana
-      </a>
-      <a class="winFolderItem" href="https://gamejolt.com/" target="_blank" rel="noopener noreferrer">
-        <span class="winFolderIcon" aria-hidden="true"></span>Game Jolt
-      </a>
       <button class="winFolderItem folderOpenButton" type="button" data-open-window="toysWindow">
         <span class="winFolderIcon" aria-hidden="true"></span>Juguetes
       </button>
@@ -3534,9 +3540,6 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         <button type="button" data-ie-page="games">🎮<span>Juegos</span></button>
 
         <button type="button" data-ie-page="credits">👥<span>Créditos</span></button>
-        <a href="https://gamebanana.com/" target="_blank" rel="noopener noreferrer">🍌<span>GameBanana ↗</span></a>
-        <a href="https://gamejolt.com/" target="_blank" rel="noopener noreferrer">⚡<span>Game Jolt ↗</span></a>
-        <button type="button" data-ie-page="secrets">👁️<span>Secretos</span></button>
       </div>
     </div>
     <div id="ieStatus" class="ieStatus">Listo</div>
@@ -4469,7 +4472,17 @@ body:not(.weirdcore):not(.animecore) #themeButton {
       const pageData = {
         news: {
           address: 'portal://novedades', title: 'Novedades',
-          items: ['El escritorio Aero ahora tiene ventanas que se pueden arrastrar.', 'Tu Bloc de notas se guarda incluso después de recargar.', 'Probá los otros dos mundos con el botón de tema.']
+          items: [
+            '💬 NUEVO: ¡Chat global estilo MSN Messenger! Hablá en tiempo real con otros visitantes del sitio. Lo encontrás en Inicio o en el escritorio.',
+            'Barra de volumen estilo Windows 7 en la bandeja del sistema: controla la música y las voces.',
+            'Los íconos del escritorio ahora se pueden arrastrar y recuerdan su posición al recargar.',
+            'Los peces, las burbujas y el resto de las animaciones ahora se ven en todas las computadoras.',
+            'Cada mundo tiene su propia música con fundido: Aero, Weirdcore y Anime Core.',
+            'Algunos habitantes del sitio tienen voz. Hacé click y escuchá.',
+            'Dicen que hay un portal invisible en el cielo... y una casa entre las nubes.',
+            'Pantalla de arranque y bienvenida renovadas, como una PC de verdad.',
+            'Turro llegó a la colección de juguetes.'
+          ]
         },
         games: {
           address: 'portal://juegos', title: 'Juegos instalados',

@@ -1293,7 +1293,8 @@
       display: block;
       position: fixed;
       /* El wallpaper nuevo tiene la línea de agua ~62%: el acuario vive debajo */
-      top: 62%;
+      --aero-top: 62vh;
+      top: var(--aero-top);
       left: 0;
       right: 0;
       bottom: 0;
@@ -1322,12 +1323,16 @@
       animation-timing-function: linear;
       animation-iteration-count: infinite;
     }
+    /* La burbuja se desvanece por completo ANTES de que su cumbre alcance la línea de
+       agua (el clip del contenedor), así nunca se ve cortada. El tramo final, ya
+       invisible, termina por encima de la línea (recortado pero opacidad 0). */
     @keyframes aeroBubbleRise {
-      0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-      10% { opacity: 1; }
-      50% { transform: translateY(-55vh) translateX(var(--wob, 12px)) scale(1.06); }
-      90% { opacity: .9; }
-      100% { transform: translateY(-118vh) translateX(0) scale(.88); opacity: 0; }
+      0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+      10%  { opacity: 1; }
+      50%  { transform: translateY(calc((var(--aero-top, 62vh) - 100vh - 120px) / 2)) translateX(var(--wob, 12px)) scale(1.06); opacity: 1; }
+      70%  { opacity: .95; }
+      82%  { opacity: 0; }
+      100% { transform: translateY(calc(var(--aero-top, 62vh) - 100vh - 120px)) translateX(0) scale(.88); opacity: 0; }
     }
     .aeroFishWrap {
       position: absolute;
@@ -3712,7 +3717,7 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         <button type="button" class="winCloseBtn" aria-label="Cerrar 3D Pinball">✕</button>
       </div>
     </div>
-    <div class="pinballFrameWrap"><iframe id="pinballFrame" class="pinballFrame" data-src="https://pinball.alula.me/" title="3D Pinball Space Cadet" allow="autoplay; fullscreen" scrolling="no"></iframe></div>
+    <div class="pinballFrameWrap"><iframe id="pinballFrame" class="pinballFrame" title="3D Pinball Space Cadet" allow="autoplay; fullscreen" scrolling="no"></iframe></div>
   </section>
 
   <section id="mediaPlayerWindow" class="win7Window mediaWindow" data-title="Windows Media Player" data-icon="▶️" role="dialog" aria-label="Windows Media Player" tabindex="-1" hidden>
@@ -6499,9 +6504,15 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         fade(players[current], 0, rapido ? 500 : FADE_MS);
         current = null;
       }
+      // El pinball "activo" = el frame tiene srcdoc (juego cargado). El frame lo
+      // conserva mientras la ventana esté abierta o minimizada y lo quita al
+      // cerrarse de verdad, así que es la señal exacta del sonido del pinball.
+      const pinballFrame = document.getElementById('pinballFrame');
+      const pinballActivo = () => !!(pinballFrame && pinballFrame.hasAttribute('srcdoc'));
       function sync() {
         if (!ready) return;
         if (!soundsOn() || volumenMaster() === 0) { stopCurrent(true); return; }
+        if (pinballActivo()) { stopCurrent(true); return; }
         const theme = themeNow();
         if (current === theme) return;
         stopCurrent(false);
@@ -6551,6 +6562,20 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         rhythmAudio.addEventListener('pause', () => {
           if (retomar) { retomar = false; setTimeout(sync, 400); }
         });
+      }
+
+      // Pinball: al abrirse (srcdoc aparece) la música del escritorio se desvanece;
+      // al cerrarse de verdad (srcdoc se quita) vuelve con fade-in.
+      let retomarPinball = false;
+      if (pinballFrame) {
+        new MutationObserver(() => {
+          if (pinballActivo()) {
+            if (current) { retomarPinball = true; stopCurrent(true); }
+          } else if (retomarPinball) {
+            retomarPinball = false;
+            setTimeout(sync, 400);
+          }
+        }).observe(pinballFrame, { attributes: true, attributeFilter: ['srcdoc'] });
       }
 
       window.VsPendejosMusic = { sync, stop: stopCurrent };
@@ -7037,13 +7062,22 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         '<!DOCTYPE html><html><head><meta charset="utf-8"><style>',
         'html,body{margin:0;height:100%;background:#3A6EA5;overflow:hidden}',
         'body{display:flex;flex-direction:column;align-items:center;justify-content:center;font:13px "Segoe UI",Tahoma,sans-serif;color:#fff}',
-        '#status{margin:8px;text-shadow:0 1px 2px rgba(0,0,0,.5)}',
+        '#status{margin:8px;max-width:90%;text-align:center;white-space:pre-wrap;text-shadow:0 1px 2px rgba(0,0,0,.5)}',
         'canvas.emscripten{border:0;background:#000;display:block}',
+        '#retry{margin-top:6px;padding:4px 14px;font:13px "Segoe UI",Tahoma,sans-serif;cursor:pointer;display:none}',
         '</style></head><body>',
         '<div id="status">Descargando…</div>',
         '<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1" style="display:none"></canvas>',
+        '<button id="retry" type="button">Reintentar</button>',
         '<scr' + 'ipt>',
         '(function(){',
+        'function mostrarError(t){var s=document.getElementById("status");var b=document.getElementById("retry");if(s){s.style.display="block";s.textContent="No se pudo cargar el pinball.\\n"+t;}if(b)b.style.display="inline-block";}',
+        'window.__pinballError=mostrarError;',
+        'window.addEventListener("error",function(e){if(e.target&&e.target!==window&&e.target.tagName==="SCRIPT")return;var m=e.error?String(e.error.message||e.error):(e.message?String(e.message):"");if(m)mostrarError(m);});',
+        'window.addEventListener("unhandledrejection",function(e){var r=e.reason;var m=r?String(r.message||r):"";if(m)mostrarError(m);});',
+        '(function(){var b=document.getElementById("retry");if(b)b.addEventListener("click",function(){location.reload();});})();',
+        '(function(){var c=document.createElement("canvas");var gl=null;try{gl=c.getContext("webgl")||c.getContext("experimental-webgl");}catch(e){}if(!gl){mostrarError("Tu navegador no pudo crear un contexto WebGL (necesario para el pinball). Probá con otro navegador, o activá “Usar aceleración de hardware cuando esté disponible” en los ajustes del sistema y reiniciá el navegador.");window.__pinballError=function(){};var quita=function(){var ex=document.querySelector("script[src*=SpaceCadet]");if(ex)ex.remove();};quita();setTimeout(quita,0);}})();',
+        '(function(){var t=setTimeout(function(){var s=document.getElementById("status");var cv=document.getElementById("canvas");if(s&&s.style.display!=="none"&&cv.style.display==="none"){s.textContent=s.textContent+"\\n(Si sigue así, abrí la consola con F12 para ver el error).";}},60000);window.__pinballOk=function(){clearTimeout(t);};})();',
         'var Real=window.AudioContext||window.webkitAudioContext;if(!Real)return;',
         'var gains=[];var vol=1;',
         'function Patched(){var ctx=new Real();var g=ctx.createGain();g.gain.value=vol;g.connect(ctx.destination);gains.push(g);Object.defineProperty(ctx,"destination",{get:function(){return g;},configurable:true});return ctx;}',
@@ -7052,15 +7086,30 @@ body:not(.weirdcore):not(.animecore) #themeButton {
         'window.__pinballGetVol=function(){return vol;};',
         '})();',
         'var statusElement=document.getElementById("status");',
-        'var Module={preRun:[],postRun:[],print:function(){},printErr:function(){},',
-        'locateFile:function(p){return "https://pinball.alula.me/"+p;},',
+        'var Module={preRun:[],postRun:[],print:function(){},printErr:function(t){if(window.__pinballError)window.__pinballError(t);},',
+        'locateFile:function(p){return (window.__pinballBase||"assets/pinball/")+p;},',
         'canvas:(function(){var c=document.getElementById("canvas");c.addEventListener("webglcontextlost",function(e){e.preventDefault();},false);return c;})(),',
-        'setStatus:function(t){statusElement.textContent=t;statusElement.style.display=t?"":"none";if(!t)document.getElementById("canvas").style.display="";},',
+        'setStatus:function(t){statusElement.textContent=t;statusElement.style.display=t?"":"none";if(!t){document.getElementById("canvas").style.display="";if(window.__pinballOk)window.__pinballOk();}},',
         'totalDependencies:0,',
         'monitorRunDependencies:function(n){this.totalDependencies=Math.max(this.totalDependencies,n);Module.setStatus(n?"Preparando... ("+(this.totalDependencies-n)+"/"+this.totalDependencies+")":"");}};',
         'Module.setStatus("Descargando...");',
         '</scr' + 'ipt>',
-        '<scr' + 'ipt async src="https://pinball.alula.me/SpaceCadetPinball.js"></scr' + 'ipt>',
+        '<scr' + 'ipt>',
+        '(function(){',
+        'var local="assets/pinball/",remote="https://pinball.alula.me/";',
+        'var first="__PINBALL_BASE__";',
+        'if(first!==local&&first!==remote){try{first=/^file:/.test(window.parent.location.protocol)?remote:local;}catch(e){first=local;}}',
+        'function load(base,canFall){',
+        '  window.__pinballBase=base;',
+        '  var s=document.createElement("script");',
+        '  s.async=true;',
+        '  s.src=base+"SpaceCadetPinball.js";',
+        '  s.onerror=function(){if(canFall){load(base===local?remote:local,false);}else{window.__pinballError&&window.__pinballError("No se pudo cargar SpaceCadetPinball.js. Revisá tu conexión a internet, o que la carpeta assets/pinball/ (con SpaceCadetPinball.js, .wasm y .data) esté junto al index.html.");}};',
+        '  document.body.appendChild(s);',
+        '}',
+        'load(first,true);',
+        '})();',
+        '</scr' + 'ipt>',
         '</body></html>'
       ].join('\n');
       const volumenActual = () => {
@@ -7077,7 +7126,7 @@ body:not(.weirdcore):not(.animecore) #themeButton {
       const cargar = () => {
         if (!win.hidden) {
           /* ventana visible: cargar el juego si hace falta */
-          if (!frame.hasAttribute('srcdoc')) frame.srcdoc = PINBALL_HTML;
+          if (!frame.hasAttribute('srcdoc')) frame.srcdoc = PINBALL_HTML.split('__PINBALL_BASE__').join(location.protocol === 'file:' ? 'https://pinball.alula.me/' : 'assets/pinball/');
           aplicarVolumen();
         } else if (!win.classList.contains('minimized') && frame.hasAttribute('srcdoc')) {
           /* cerrada de verdad (no minimizada): descargar el juego para cortar el sonido */
